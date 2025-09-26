@@ -1,0 +1,500 @@
+---
+title: Notebook
+date: today
+freeze: auto
+---
+
+```{r}
+library(tidyverse)
+library(gtsummary)
+library(survival)
+library(ggsurvfit)
+library(tidycmprsk)
+library(marginaleffects)
+library(gt)
+library(patchwork)
+
+source(here::here('src/process-data.R'))
+
+board <- pins::board_folder(here::here('board'))
+
+```
+
+# Table 1: Demographics and Clinical Characteristics
+
+```{r}
+#| label: baseline-charcteristics
+#| html-table-processing: none
+
+local({
+  data <- pins::pin_read(board, 'processed-data')
+
+  data <- data |>
+    select(
+      age_referral,
+      sex,
+      race_v2,
+      marital_status,
+      bmi,
+      bmi_class,
+      etiology_mash
+    )
+
+  tbl_summary(
+    data,
+    by = etiology_mash,
+    label = list(
+      age_referral ~ 'Age at Referral',
+      sex ~ 'Sex',
+      race_v2 ~ 'Race',
+      marital_status ~ 'Marital Status',
+      bmi ~ 'Body Mass Index (BMI)',
+      bmi_class ~ 'BMI Class'
+    )
+  ) |>
+    add_overall() |>
+    add_p()
+})
+
+```
+
+
+```{r}
+#| label: med-comorbidity-table
+#| html-table-processing: none
+
+local({
+  data <- pins::pin_read(board, 'processed-data')
+
+  data <- data |>
+    select(
+      contains('med_comorbidity'),
+      etiology_mash
+    )
+
+  tbl_summary(
+    data,
+    by = etiology_mash,
+    label = list(
+      med_comorbidity_dm ~ 'Diabetes Mellitus',
+      med_comorbidity_htn ~ 'Hypertension',
+      med_comorbidity_hld ~ 'Hyperlipidemia',
+      med_comorbidity_cad ~ 'Coronary Artery Disease'
+    ),
+    value = list(everything() ~ '1')
+  ) |>
+    add_overall() |>
+    add_p()
+})
+
+```
+
+```{r}
+#| label: indication-table
+#| html-table-processing: none
+
+local({
+  data <- pins::pin_read(board, 'processed-data')
+
+  data <- data |>
+    select(
+      contains('indications_lt'),
+      -indications_lt_eval_other,
+      etiology_mash
+    )
+
+  tbl_summary(
+    data,
+    by = etiology_mash,
+    label = list(
+      indications_lt_decomp ~ 'Decompensated Cirrhosis',
+      indications_lt_alf ~ 'Acute Liver Failure',
+      indications_lt_hcc ~ 'Hepatocellular Carcinoma',
+      indications_lt_other ~ 'Other Ind'
+    ),
+    value = list(everything() ~ '1')
+  ) |>
+    add_overall() |>
+    add_p()
+})
+
+```
+
+```{r}
+local({
+  data <- pins::pin_read(board, 'processed-data')
+
+  data |>
+    select(
+      eval_outcome,
+      listing_outcome,
+      etiology_mash
+    ) |>
+    tbl_summary(
+      by = etiology_mash
+    ) |>
+    add_overall() |>
+    add_p()
+})
+
+```
+
+Several essential problems need to be resolved before the study can proceed to publication. The primary issue with this study lies in its statistical methodology for outcome assessment. The three studied events — transplant, death, and delisting status — exist in a time-dependent relationship, competing with one another. The study requires time-dependent analysis because descriptive statistics, including medians and chi-square tests, fail to show these temporal relationships. The authors should use Fine–Gray competing risks models to analyze waitlist outcomes and multi-state or cause-specific Cox models to study patient transitions from referral to evaluation and listing, as well as transplant and removal. The authors should present subdistribution hazard ratios, along with confidence intervals, to achieve more accurate risk measurement.
+
+# 3.5. MASLD Patients are More Likely to be Waitlisted 
+
+> Despite having a prolonged period of referral and evaluation, MASLD patients are more likely to be waitlisted (59.3% vs. 49.8%; p < 0.001). Additionally, MASLD candidates are more likely to be deferred at selection (7.1% vs. 4.7%), and less likely to be declined for LT than non-MASLD candidates (32.5% vs. 44.2%; Table 5).
+
+```{r}
+data <- pins::pin_read(board, 'processed-data')
+
+data <- data |>
+  mutate(
+    time_to_listing = case_when(
+      eval_outcome == 'Waitlisted' ~ time_to_listing,
+      eval_outcome %in% c('Declined', 'Deferred') ~ time_to_selection
+    ),
+    waitlist = ifelse(eval_outcome == 'Waitlisted', 1, 0)
+  )
+
+fit <- coxph(
+  Surv(time_to_listing, waitlist) ~
+    etiology_mash +
+      age_referral +
+      sex +
+      race_v2 +
+      marital_status +
+      bmi_class,
+  data = data
+)
+
+fit |>
+  tbl_regression(exponentiate = TRUE)
+
+```
+
+# 3.6. Waitlist Outcomes are Affected by Patient BMI, Age, and Evaluation Site 
+MASLD patients were significantly more likely to be waitlisted in undeweight group (60.0% vs. 44.1%; p=0.02), normal BMI group (57.6% vs. 50.1%; p=0.02), overweight group (61.8% vs. 49.9%; p<0.001) and obese group (62.3% vs. 51.1%; p<0.001) (Table 6). Importantly, there was no difference in likelihood of waitlisting for morbidly obese patients (BMI>40kg/m2) between MASLD and non-MASLD cohorts (p=0.07).
+
+```{r}
+data <- pins::pin_read(board, 'processed-data')
+
+data <- data |>
+  mutate(
+    time_to_listing = case_when(
+      eval_outcome == 'Waitlisted' ~ time_to_listing,
+      eval_outcome %in% c('Declined', 'Deferred') ~ time_to_selection
+    ),
+    waitlist = ifelse(eval_outcome == 'Waitlisted', 1, 0)
+  )
+
+fit <- coxph(
+  Surv(time_to_listing, waitlist) ~
+    (etiology_mash * bmi_class) +
+      site_name +
+      age_referral +
+      sex +
+      race_v2 +
+      marital_status +
+      site_name,
+  data = data
+)
+
+fit |>
+  tbl_regression(exponentiate = TRUE) |>
+  combine_terms(
+    formula = . ~ . - etiology_mash:bmi_class, # Remove the interaction for the test
+    label = "Interaction: etiology_mash * bmi_class",
+    test = "LRT"
+  )
+
+me <- marginaleffects::avg_comparisons(
+  fit,
+  variables = 'etiology_mash',
+  by = 'bmi_class',
+  type = 'lp',
+  transform = exp
+)
+
+me
+```
+
+```{r}
+data <- pins::pin_read(board, 'processed-data')
+
+data <- data |>
+  mutate(
+    time_to_listing = case_when(
+      eval_outcome == 'Waitlisted' ~ time_to_listing,
+      eval_outcome %in% c('Declined', 'Deferred') ~ time_to_selection
+    ),
+    waitlist = ifelse(eval_outcome == 'Waitlisted', 1, 0)
+  )
+
+fit <- coxph(
+  Surv(time_to_listing, waitlist) ~
+    (etiology_mash * site_name) +
+      bmi_class +
+      site_name +
+      age_referral +
+      sex +
+      race_v2 +
+      marital_status,
+  data = data
+)
+
+fit |>
+  tbl_regression(exponentiate = TRUE) |>
+  combine_terms(
+    formula = . ~ . - etiology_mash:site_name, # Remove the interaction for the test
+    label = "Interaction: etiology_mash * site_name",
+    test = "LRT"
+  )
+
+me <- marginaleffects::avg_comparisons(
+  fit,
+  variables = 'etiology_mash',
+  by = 'site_name',
+  type = 'lp',
+  transform = exp
+)
+
+me
+
+```
+
+ The researchers should perform Cox regression analysis to model post-removal survival based on the reason for removal. The researchers should perform sensitivity tests by removing hepatocellular carcinoma cases and by dividing patients into BMI categories and pre-COVID and COVID-era groups and inpatient and outpatient evaluation groups and by analyzing patients with and without portal vein thrombosis. The research benefits from additional analysis through the inclusion of interaction terms that examine how MASLD interacts with BMI and age and center.
+
+```{r}
+data <- pins::pin_read(board, 'processed-data')
+
+data <- data |>
+  filter(eval_outcome == 'Waitlisted')
+
+data <- data |>
+  filter(!is.na(time_to_transplant_removal))
+
+data <- data |>
+  mutate(
+    age_10 = age_referral / 10
+  )
+
+# fgdata <- finegray(
+#   Surv(time_to_transplant_removal, competing_transplant_removal) ~
+#     age_10 +
+#       sex +
+#       race_v2 +
+#       marital_status +
+#       bmi_class +
+#       etiology_mash,
+#   data = data,
+#   etype = 1
+# )
+
+# fit <- coxph(
+#   Surv(fgstart, fgstop, fgstatus) ~
+#     age_10 +
+#       sex +
+#       race_v2 +
+#       marital_status +
+#       bmi_class +
+#       etiology_mash,
+#   data = fgdata,
+#   weights = fgwt
+# )
+
+fit <- crr(
+  Surv(time_to_transplant_removal, competing_transplant_removal) ~
+    age_10 +
+      sex +
+      meld_eval +
+      race_v2 +
+      marital_status +
+      bmi_class +
+      etiology_mash,
+  data = data,
+  failcode = 1
+)
+
+tbl_regression(fit, exponentiate = TRUE)
+
+
+```
+
+including age, sex, MELD or MELD-Na score, and MELD 3.0 when available, BMI class, diabetes, coronary artery disease, portal vein thrombosis, hepatocellular carcinoma, decompensation status, and center
+
+# Cumulative Incidence Transplant and Waitlist Removal
+
+The study should display competing-risks cumulative incidence rates for transplant procedures and death on the waitlist and removals due to deterioration and improvement and other reasons.
+
+## Cumulative Incidence
+```{r}
+#| label: cuminc-plot-waitlist-removal
+#| fig-width: 12
+#| fig-height: 8
+#| dpi: 150
+local({
+  data <- pins::pin_read(board, 'processed-data')
+
+  data <- data |>
+    filter(eval_outcome == 'Waitlisted')
+
+  data <- data |>
+    filter(!is.na(time_to_transplant_removal))
+
+  c <- cuminc(
+    Surv(time_to_transplant_removal, competing_transplant_removal) ~
+      etiology_mash,
+    data = data
+  )
+
+  construct_cuminc_plot <- \(x) {
+    x +
+      add_confidence_interval() +
+      add_risktable() +
+      scale_x_continuous(limits = c(0, 5)) +
+      scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
+      add_pvalue(
+        pvalue_fun = scales::label_pvalue(),
+        caption = "Gray's test: {p.value}"
+      ) +
+      theme(plot.margin = margin(t = 10, r = 10, b = 10, l = 20)) +
+      labs(x = 'Years since waitlisting', y = 'Cumulative incidence')
+  }
+
+  plot_a <- ggsurvfit::ggcuminc(c, outcome = 1) |> construct_cuminc_plot()
+
+  plot_b <- ggsurvfit::ggcuminc(c, outcome = 2) |> construct_cuminc_plot()
+
+  p <- map(list(plot_a, plot_b), \(x) ggsurvfit::ggsurvfit_build(x)) |>
+    wrap_plots() +
+    plot_annotation(
+      tag_levels = list(c('A', '', '', 'B', '', '', 'C', '', '', 'D'))
+    ) &
+    theme(
+      plot.tag = element_text(
+        face = 'bold',
+        size = 25,
+        margin = margin(t = 0, r = 5, b = 0, l = 0)
+      ),
+      panel.grid.minor = element_blank()
+    )
+
+  # p + ggview::canvas(width = 12, height = 8)
+
+  p
+})
+
+```
+
+## Cumulative Incidence Rates
+```{r}
+#| label: cuminc-table-waitlist-removal
+#| html-table-processing: none
+
+local({
+  data <- pins::pin_read(board, 'processed-data')
+
+  data <- data |>
+    filter(eval_outcome == 'Waitlisted')
+
+  data <- data |>
+    filter(!is.na(time_to_transplant_removal))
+
+  c <- cuminc(
+    Surv(time_to_transplant_removal, competing_transplant_removal) ~
+      etiology_mash,
+    data = data
+  )
+
+  tbl_data <- c |>
+    tidy_cuminc(times = 0:10)
+
+  tbl_data <- tbl_data |>
+    mutate(
+      outcome = factor(
+        outcome,
+        levels = 1:2,
+        labels = c('Transplant', 'Waitlist removal')
+      )
+    )
+
+  tbl_data |>
+    select(time, outcome, strata, estimate, conf.low, conf.high) |>
+    transmute(
+      time,
+      outcome,
+      strata,
+      estimate = glue::glue(
+        "{scales::percent(estimate)} ({scales::percent(conf.low)}, {scales::percent(conf.high)})"
+      )
+    ) |>
+    pivot_wider(
+      names_from = strata,
+      values_from = estimate
+    ) |>
+    group_by(outcome) |>
+    gt() |>
+    cols_label(time = 'Time (years)', outcome = 'Outcome')
+})
+
+```
+
+# Survival After Waitlist Removal
+
+```{r}
+data <- pins::pin_read(board, 'processed-data')
+
+data <- data |>
+  filter(listing_outcome == 'Waitlist removal')
+
+data <- data |>
+  mutate(
+    time_to_mortality_post_removal = case_when(
+      mortality_outcome == 1 ~ time_to_mortality - time_to_waitlist_removal,
+      mortality_outcome == 0 ~ time_to_last_follow_up - time_to_waitlist_removal
+    )
+  )
+
+fit <- survfit(
+  Surv(time_to_mortality_post_removal, mortality_outcome) ~ etiology_mash,
+  data = data
+)
+
+data |>
+  filter(time_to_mortality_post_removal < time_to_last_follow_up)
+
+params <- data |>
+  filter(eval_outcome == 'Waitlisted') |>
+  group_nest(waitlist_removal_recode)
+
+data |>
+  filter(listing_outcome == 'Waitlist removal') |>
+  select(
+    time_to_mortality,
+    mortality_outcome,
+    time_to_waitlist_removal,
+    time_to_mortality_post_removal,
+    time_to_last_follow_up
+  )
+
+```
+
+# Notes on Time Variables
+
+"time_to_evaluation" is the time from referral to initiation of evaluation.
+"time_to_selection" is the time from initiation of evaluation to selection meeting, where the patient's transplant candidacy is decided upon (waitlist, defer, decline)
+"time_to_listing" is the time from being approved at selection meeting (with a waitlist decision) until the time they actually go on the transplant list. This is often done for patients who have very low MELD scores and are added to the list once they become competitive.
+
+For waitlisted patients, they will either be transplanted, remain on the waitlist (awaiting transplant to last follow up), or be removed from the waitlist.
+"time_to_waitlist_removal" is time from listing to being removed from the waitlist
+"time_to_transplant" is time from listing to time of transplant
+"time_to_last_follow_up" should be the last time patients were seen by the transplant program, which should generally apply only to alive patients. So the maximum duration we can confirm they are still alive.
+
+"time_to_mortality" is challenging. I am checking with the person who compiled the database as to how this was computed... but I believe it is from time of selection.... what I do see is that there are a good number of patients who have a time to waitlist removal that is shorter than time to mortality.... this would suggest these patients have died on the waitlist, but they were classified as "waitlist removal"".  Let me confirm this variable, and we will have to address this.
+
+"time_to_event" is a variable I created that is either time to mortality or time to last follow up (if alive) - which I used to create the 1-year and 3-year outcome data
+"time_to_removal" is a variable I was trying to use that can be ignored
+"3_year_mortality_2" was used for 3 year kaplan meier curve, which caps at 1095 days (3 years) to determine who is alive at 3 years post listing.
+"time to last drink" applies to sobriety interval for EtOH patients; we did not analyze for this project
+"time to hcc diagnosis" and "time to meld exception" relate to HCC allocation policy; we did not analyze for this project.

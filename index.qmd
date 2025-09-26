@@ -1,0 +1,33 @@
+---
+title: Outcomes from Referral to Transplant for Patients with MASLD
+date: today
+embed-resources: true
+lightbox: true
+notebook-links: false
+output-file: wisel-outcomes-referral-transplant
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+```
+
+# Baseline Characteristics
+
+{{< embed nb.qmd#baseline-charcteristics >}}
+
+{{< embed nb.qmd#med-comorbidity-table >}}
+
+{{< embed nb.qmd#indication-table >}}
+
+# Cumulative Incidence of Waitlist Removal
+
+> The study should display competing-risks cumulative incidence rates for transplant procedures and death on the waitlist and removals due to deterioration and improvement and other reasons.
+
+- A: Transplant
+- B: Waitlist Removal
+
+{{< embed nb.qmd#cuminc-plot-waitlist-removal >}}
+
+{{< embed nb.qmd#cuminc-table-waitlist-removal >}}
+

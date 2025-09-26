@@ -2,3 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+manuscript
+data
+.quarto
+board
+/.quarto/
+**/*.quarto_ipynb
+_output
