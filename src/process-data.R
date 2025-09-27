@@ -110,6 +110,21 @@ data <- data |>
   )
 
 
+# code the died on the waitlist patients ---------------------------------
+
+data <- data |>
+  mutate(
+    listing_outcome = case_when(
+      listing_outcome == 'Waitlist removal' &
+        mortality_outcome == 1 &
+        (time_to_mortality < time_to_waitlist_removal) ~
+        'Died on waitlist',
+      .default = listing_outcome
+    )
+  ) |>
+  filter(listing_outcome == 'Died on waitlist')
+
+
 # exlcude the outlier follow up - most likely clerical error -------------
 
 data <- data |>
