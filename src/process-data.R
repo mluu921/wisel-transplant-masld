@@ -15,11 +15,6 @@ data <- data |>
   janitor::clean_names()
 
 data <- data |>
-  filter(
-    person_eval == 'yes'
-  )
-
-data <- data |>
   mutate(
     etiology_mash = factor(
       etiology_mash,
