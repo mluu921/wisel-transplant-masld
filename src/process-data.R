@@ -14,6 +14,16 @@ data <- readxl::read_excel(
 data <- data |>
   janitor::clean_names()
 
+# exlcude the outlier follow up - most likely clerical error -------------
+
+data <- data |>
+  filter(time_to_last_follow_up < 5000 | is.na(time_to_last_follow_up))
+
+data <- data |>
+  filter(time_to_transplant <= 5000 | is.na(time_to_transplant))
+
+# code the vars ----------------------------------------------------------
+
 data <- data |>
   mutate(
     etiology_mash = factor(
@@ -26,7 +36,11 @@ data <- data |>
 data <- data |>
   mutate(
     eval_outcome = ifelse(eval_outcome == 'NA', NA, eval_outcome),
-    listing_outcome = ifelse(listing_outcome == 'NA', NA, listing_outcome)
+    listing_outcome = ifelse(
+      listing_outcome %in% c('NA', 'Still waiting'),
+      NA,
+      listing_outcome
+    )
   )
 
 data <- data |>
@@ -88,28 +102,6 @@ data$waitlist_removal_recode <- fct_lump_min(
   min = 30
 )
 
-# code time to event vars ------------------------------------------------
-
-data <- data |>
-  mutate(
-    time_to_transplant_removal = case_when(
-      listing_outcome == 'Transplanted' ~ time_to_transplant,
-      listing_outcome == 'Waitlist removal' ~ time_to_waitlist_removal,
-      listing_outcome == 'Still waiting' ~ time_to_last_follow_up
-    ),
-    competing_transplant_removal = case_when(
-      listing_outcome == 'Transplanted' ~ 1,
-      listing_outcome == 'Waitlist removal' ~ 2,
-      listing_outcome == 'Still waiting' ~ 0
-    ),
-    time_to_transplant_removal = time_to_transplant_removal / 365.25,
-    competing_transplant_removal = factor(
-      competing_transplant_removal,
-      levels = 0:2
-    )
-  )
-
-
 # code the died on the waitlist patients ---------------------------------
 
 data <- data |>
@@ -120,15 +112,97 @@ data <- data |>
         (time_to_mortality < time_to_waitlist_removal) ~
         'Died on waitlist',
       .default = listing_outcome
-    )
-  ) |>
-  filter(listing_outcome == 'Died on waitlist')
-
-
-# exlcude the outlier follow up - most likely clerical error -------------
+    ),
+    listing_outcome = factor(listing_outcome)
+  )
 
 data <- data |>
-  filter(time_to_last_follow_up < 5000 | is.na(time_to_last_follow_up))
+  mutate(
+    eval_outcome = factor(eval_outcome)
+  )
+
+# code time to event vars ------------------------------------------------
+
+data <- data |>
+  mutate(
+    time_to_listing = case_when(
+      eval_outcome == 'Waitlisted' & is.na(time_to_listing) ~ time_to_selection,
+      .default = time_to_listing
+    )
+  )
+
+data <- data |>
+  mutate(
+    time_from_waitlist_to_event = case_when(
+      eval_outcome == 'Waitlisted' & listing_outcome == 'Died on waitlist' ~
+        time_to_mortality - time_to_listing,
+      eval_outcome == 'Waitlisted' & listing_outcome == 'Waitlist removal' ~
+        time_to_waitlist_removal - time_to_listing,
+      eval_outcome == 'Waitlisted' & listing_outcome == 'Transplanted' ~
+        time_to_transplant - time_to_listing,
+      eval_outcome == 'Waitlisted' & is.na(listing_outcome) ~
+        time_to_last_follow_up - time_to_listing,
+    )
+  )
+
+data <- data |>
+  mutate(
+    competing_risk_waitlist = case_when(
+      eval_outcome == 'Waitlisted' & is.na(listing_outcome) ~ 0,
+      eval_outcome == 'Waitlisted' & listing_outcome == 'Died on waitlist' ~ 1,
+      eval_outcome == 'Waitlisted' & listing_outcome == 'Waitlist removal' ~ 2,
+      eval_outcome == 'Waitlisted' & listing_outcome == 'Transplanted' ~ 3
+    ),
+    competing_risk_waitlist = factor(competing_risk_waitlist)
+  )
+
+data <- data |>
+  mutate(
+    time_from_waitlist_removal_to_death = case_when(
+      mortality_outcome == 1 ~ time_to_mortality - time_to_waitlist_removal,
+      mortality_outcome == 0 ~ time_to_last_follow_up - time_to_waitlist_removal
+    )
+  ) |>
+  mutate(
+    time_from_transplant_to_death = case_when(
+      mortality_outcome == 1 ~ time_to_mortality - time_to_transplant,
+      mortality_outcome == 0 ~ time_to_last_follow_up - time_to_transplant
+    )
+  )
+
+data |>
+  # filter(time_from_waitlist_to_event > 20000) |>
+  select(
+    eval_outcome,
+    listing_outcome,
+    time_to_mortality,
+    time_to_listing,
+    time_to_last_follow_up,
+    time_to_transplant,
+    time_from_waitlist_to_event,
+    time_from_transplant_to_death
+  )
+
+# summary(data$time_from_waitlist_to_event)
+
+# check this to make sure it's correct
+# data <- data |>
+#   mutate(
+#     time_to_selection = case_when(
+#       eval_outcome == 'Waitlisted' & is.na(time_to_selection) ~ time_to_listing,
+#       .default = time_to_selection
+#     ),
+#     time_eval_to_listing = case_when(
+#       eval_outcome == 'Waitlisted' ~ time_to_selection - time_to_evaluation,
+#       eval_outcome == 'Waitlisted' &
+#         mortality_outcome == 1 &
+#         (time_to_mortality < time_to_waitlist_removal) ~
+#         time_to_mortality - time_to_evaluation,
+#       eval_outcome %in% c('Declined', 'Deferred') ~
+#         time_to_selection - time_to_evaluation,
+#       .default = time_to_last_follow_up - time_to_evaluation
+#     )
+#   )
 
 # save the data ----------------------------------------------------------
 

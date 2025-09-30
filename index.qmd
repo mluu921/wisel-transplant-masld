@@ -1,6 +1,9 @@
 ---
 title: Outcomes from Referral to Transplant for Patients with MASLD
 date: today
+format: 
+  html:
+    toc: true
 embed-resources: true
 lightbox: true
 notebook-links: false
@@ -24,10 +27,39 @@ library(tidyverse)
 
 > The study should display competing-risks cumulative incidence rates for transplant procedures and death on the waitlist and removals due to deterioration and improvement and other reasons.
 
-- A: Transplant
-- B: Waitlist Removal
+- A: Died on waitlist
+- B: Removed due to deterioration
+- C: Transplanted
 
 {{< embed nb.qmd#cuminc-plot-waitlist-removal >}}
 
 {{< embed nb.qmd#cuminc-table-waitlist-removal >}}
+
+# Finegray Model for Waitlist Remova, Death, and Transplant
+
+> The three studied events — transplant, death, and delisting status — exist in a time-dependent relationship, competing with one another. The study requires time-dependent analysis because descriptive statistics, including medians and chi-square tests, fail to show these temporal relationships. The authors should use Fine–Gray competing risks models to analyze waitlist outcomes and multi-state or cause-specific Cox models to study patient transitions from referral to evaluation and listing, as well as transplant and removal. The authors should present subdistribution hazard ratios, along with confidence intervals, to achieve more accurate risk measurement.
+
+{{< embed nb.qmd#finegray-model-transplant-waitlist-removal-death >}}
+
+# Logistic Regression for Waitlisting
+
+{{< embed nb.qmd#glm-waitlisting >}}
+
+# Logistic Regression for Waitlisting with BMI Interaction
+
+{{< embed nb.qmd#glm-waitlisting-bmi-interaction-marginal-table >}}
+
+# Logistic Regression for Waitlisting with Site Interaction
+
+{{< embed nb.qmd#glm-waitlisting-site-interaction-marginal-table >}}
+
+# 
+
+> The survival analysis requires additional development for proper implementation. The text indicates the use of Wilcoxon tests for Kaplan–Meier curve analysis, but these tests do not follow standard procedures for such comparisons. The researchers should perform log-rank tests and Cox proportional hazards models with relevant clinical covariates, including age, sex, MELD or MELD-Na score, and MELD 3.0 when available, BMI class, diabetes, coronary artery disease, portal vein thrombosis, hepatocellular carcinoma, decompensation status, and center. The use of hazard ratios with 95% confidence intervals provides better clinical value for effect size measurement. The researchers should use adjusted Cox models with stratification based on removal reasons to analyze survival rates of patients who leave the waiting list.
+
+{{< embed nb.qmd#survival-plot-transplant >}}
+
+{{< embed nb.qmd#survival-plot-waitlist-removal >}}
+
+{{< embed nb.qmd#survival-plot-waitlist-removal-reason >}}
 
