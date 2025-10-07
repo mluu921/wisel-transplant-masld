@@ -16,6 +16,10 @@ library(patchwork)
 library(tidymodels)
 library(mice)
 library(Hmisc)
+library(lme4)
+library(broom.mixed)
+
+options(marginaleffects_safe = FALSE)
 
 source(here::here('src/process-data.R'))
 
@@ -382,14 +386,10 @@ out <- local({
 out
 ```
 
-# Logistic Regression Model - Factors Associated with Waitlisting
-
-- MASLD Patients are More Likely to be Waitlisted 
+# Construct Imputation for GLM models
 
 ```{r}
-#| label: glm-waitlisting
-#| html-table-processing: none
-out <- local({
+m <- local({
   data <- pins::pin_read(board, 'processed-data')
 
   data <- data |>
@@ -404,6 +404,10 @@ out <- local({
           'Declined',
           'Deferred'
         )
+      ),
+      outcome = case_when(
+        outcome == 'Waitlisted' ~ 1,
+        outcome == 'Not Waitlisted' ~ 0
       )
     )
 
@@ -413,9 +417,8 @@ out <- local({
         sex +
         site_name +
         bmi_class +
-        med_comorbidity_dm +
-        med_comorbidity_cad +
-        med_comorbidity_htn +
+        meld_listing +
+        total_comorbs +
         etiology_mash,
     data = data
   ) |>
@@ -427,115 +430,67 @@ out <- local({
     sex = "logreg",
     site_name = "polyreg",
     bmi_class = "polyreg",
-    med_comorbidity_dm = "",
-    med_comorbidity_cad = "",
-    med_comorbidity_htn = "",
+    meld_listing = "pmm",
+    total_comorbs = "",
     etiology_mash = "",
     outcome = ""
   )
 
   set.seed(1)
   m <- mice::mice(data, m = 5, method = pred_methods, printFlag = FALSE)
-
-  fit <- fit.mult.impute(
-    outcome ~
-      age_referral +
-        sex +
-        site_name +
-        bmi_class +
-        med_comorbidity_dm +
-        med_comorbidity_cad +
-        med_comorbidity_htn +
-        etiology_mash,
-    data = data,
-    xtrans = m,
-    fitter = glm,
-    fitargs = list(family = binomial()),
-    pr = FALSE
-  )
-
-  fit |>
-    tbl_regression(exponentiate = TRUE) |>
-    bold_p()
 })
 
-out
 ```
 
 # Logistic Regression Model - Factors Associated with Waitlisting
 
-- Evaluation Outcome Stratified by BMI Class 
+```{r}
+#| label: glm-waitlisting
+#| html-table-processing: none
+
+fits <- with(
+  m,
+  lme4::glmer(
+    outcome ~
+      age_referral +
+        sex +
+        bmi_class +
+        meld_listing +
+        total_comorbs +
+        etiology_mash +
+        (1 | site_name),
+    family = binomial()
+  )
+)
+
+fits |>
+  tbl_regression(exponentiate = TRUE) |>
+  bold_p()
+```
+
+# Logistic Regression Model - Factors Associated with Waitlisting
 
 ```{r}
 #| label: glm-waitlisting-bmi-interaction-marginal-table
 #| html-table-processing: none
 
 out <- local({
-  data <- pins::pin_read(board, 'processed-data')
-
-  data <- data |>
-    filter(person_eval == 'yes')
-
-  data <- data |>
-    mutate(
-      outcome = fct_collapse(
-        eval_outcome,
-        'Waitlisted' = c('Waitlisted'),
-        'Not Waitlisted' = c(
-          'Declined',
-          'Deferred'
-        )
-      )
+  fits <- with(
+    m,
+    lme4::glmer(
+      outcome ~
+        age_referral +
+          sex +
+          bmi_class * etiology_mash +
+          meld_listing +
+          total_comorbs +
+          (1 | site_name),
+      family = binomial()
     )
-
-  data <- recipe(
-    outcome ~
-      age_referral +
-        sex +
-        site_name +
-        bmi_class +
-        med_comorbidity_dm +
-        med_comorbidity_cad +
-        med_comorbidity_htn +
-        etiology_mash,
-    data = data
-  ) |>
-    prep() |>
-    bake(new_data = NULL)
-
-  pred_methods <- c(
-    age_referral = "",
-    sex = "logreg",
-    site_name = "polyreg",
-    bmi_class = "polyreg",
-    med_comorbidity_dm = "",
-    med_comorbidity_cad = "",
-    med_comorbidity_htn = "",
-    etiology_mash = "",
-    outcome = ""
-  )
-
-  set.seed(1)
-  m <- mice::mice(data, m = 5, method = pred_methods, printFlag = FALSE)
-
-  fit <- fit.mult.impute(
-    outcome ~
-      age_referral +
-        sex +
-        site_name +
-        bmi_class * etiology_mash +
-        med_comorbidity_dm +
-        med_comorbidity_cad +
-        med_comorbidity_htn,
-    data = data,
-    xtrans = m,
-    fitter = glm,
-    fitargs = list(family = binomial()),
-    pr = FALSE
   )
 
   tbl <- marginaleffects::avg_comparisons(
-    fit,
+    fits,
     variables = 'etiology_mash',
     by = 'bmi_class',
     transform = exp
@@ -557,6 +512,48 @@ out
 
 ```
 
+```{r}
+#| label: glm-waitlisting-sex-interaction-marginal-table
+#| html-table-processing: none
+
+out <- local({
+  fits <- with(
+    m,
+    lme4::glmer(
+      outcome ~
+        age_referral +
+          bmi_class +
+          sex * etiology_mash +
+          meld_listing +
+          total_comorbs +
+          (1 | site_name),
+      family = binomial()
+    )
+  )
+
+  tbl <- marginaleffects::avg_comparisons(
+    fits,
+    variables = 'sex',
+    by = 'etiology_mash',
+    transform = exp
+  )
+
+  tbl |>
+    as_tibble() |>
+    select(etiology_mash, estimate, conf.low, conf.high, p.value) |>
+    gt() |>
+    fmt_number(estimate:conf.high, decimals = 2) |>
+    fmt(p.value, fns = scales::label_pvalue()) |>
+    cols_merge(
+      columns = c(estimate, conf.low, conf.high),
+      pattern = "{1} ({2}, {3})"
+    )
+})
+
+out
+
+```
+
 # Logistic Regression Model - Factors Associated with Waitlisting
 - Evaluation Outcome Stratified by Site 
   
@@ -564,71 +561,21 @@ out
 #| label: glm-waitlisting-site-interaction-marginal-table
 #| html-table-processing: none
 out <- local({
-  data <- pins::pin_read(board, 'processed-data')
-
-  data <- data |>
-    filter(person_eval == 'yes')
-
-  data <- data |>
-    mutate(
-      outcome = fct_collapse(
-        eval_outcome,
-        'Waitlisted' = c('Waitlisted'),
-        'Not Waitlisted' = c(
-          'Declined',
-          'Deferred'
-        )
-      )
+  fits <- with(
+    m,
+    glm(
+      outcome ~
+        age_referral +
+          sex +
+          site_name * etiology_mash +
+          meld_listing +
+          total_comorbs,
+      family = binomial()
     )
-
-  data <- recipe(
-    outcome ~
-      age_referral +
-        sex +
-        site_name +
-        bmi_class +
-        med_comorbidity_dm +
-        med_comorbidity_cad +
-        med_comorbidity_htn +
-        etiology_mash,
-    data = data
-  ) |>
-    prep() |>
-    bake(new_data = NULL)
-
-  pred_methods <- c(
-    age_referral = "",
-    sex = "logreg",
-    site_name = "polyreg",
-    bmi_class = "polyreg",
-    med_comorbidity_dm = "",
-    med_comorbidity_cad = "",
-    med_comorbidity_htn = "",
-    etiology_mash = "",
-    outcome = ""
-  )
-
-  set.seed(1)
-  m <- mice::mice(data, m = 5, method = pred_methods, printFlag = FALSE)
-
-  fit <- fit.mult.impute(
-    outcome ~
-      age_referral +
-        sex +
-        bmi_class +
-        site_name * etiology_mash +
-        med_comorbidity_dm +
-        med_comorbidity_cad +
-        med_comorbidity_htn,
-    data = data,
-    xtrans = m,
-    fitter = glm,
-    fitargs = list(family = binomial()),
-    pr = FALSE
   )
 
   tbl <- marginaleffects::avg_comparisons(
-    fit,
+    fits,
     variables = 'etiology_mash',
     by = 'site_name',
     transform = exp
@@ -649,10 +596,8 @@ out <- local({
 out
 ```
 
-Removal From Waitlist Reflected Significant Impact on Survival in MASLD Patients 
 
-# 
-
+# Survival Analysis
 
 ```{r}
 #| label: survival-plot-waitlist-removal
