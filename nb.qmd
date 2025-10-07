@@ -188,7 +188,7 @@ local({
   construct_cuminc_plot <- \(x) {
     x +
       add_confidence_interval() +
-      add_risktable() +
+      add_risktable(risktable_stats = 'n.risk') +
       scale_x_continuous(limits = c(0, 5)) +
       scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
       add_pvalue(
@@ -211,15 +211,11 @@ local({
       tag_levels = list(c(
         'A',
         '',
-        '',
         'B',
-        '',
         '',
         'C',
         '',
-        '',
         'D',
-        '',
         '',
         'E'
       ))
@@ -692,7 +688,7 @@ out <- local({
   ) |>
     ggsurvfit::ggsurvfit() +
     add_confidence_interval() +
-    add_risktable() +
+    add_risktable(risktable_stats = 'n.risk') +
     scale_x_continuous(limits = c(0, 5)) +
     scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
     add_pvalue(
@@ -739,7 +735,7 @@ out <- local({
   ) |>
     ggsurvfit::ggsurvfit() +
     add_confidence_interval() +
-    add_risktable() +
+    add_risktable(risktable_stats = 'n.risk') +
     scale_x_continuous(limits = c(0, 5)) +
     scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
     add_pvalue(
@@ -790,7 +786,7 @@ out <- local({
   ) |>
     ggsurvfit::ggsurvfit() +
     add_confidence_interval() +
-    add_risktable() +
+    add_risktable(risktable_stats = 'n.risk') +
     scale_x_continuous(limits = c(0, 5)) +
     scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
     add_pvalue(
