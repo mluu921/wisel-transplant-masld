@@ -174,7 +174,8 @@ data <- data |>
   rowwise() |>
   mutate(
     across(contains('med_'), \(x) as.numeric(x)),
-    total_comorbs = sum(c_across(contains('med_')), na.rm = TRUE)
+    total_comorbs = sum(c_across(contains('med_')), na.rm = TRUE),
+    total_comorbs = factor(total_comorbs, levels = 0:4)
   ) |>
   ungroup()
 
