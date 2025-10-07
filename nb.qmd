@@ -329,9 +329,8 @@ out <- local({
         sex +
         site_name +
         bmi_class +
-        med_comorbidity_dm +
-        med_comorbidity_cad +
-        med_comorbidity_htn +
+        meld_listing +
+        total_comorbs +
         etiology_mash,
     data = data
   ) |>
@@ -343,9 +342,8 @@ out <- local({
     sex = "logreg",
     site_name = "",
     bmi_class = "polyreg",
-    med_comorbidity_dm = "",
-    med_comorbidity_cad = "",
-    med_comorbidity_htn = "",
+    meld_listing = "pmm",
+    total_comorbs = "",
     etiology_mash = "",
     time_from_waitlist_to_event = "",
     competing_risk_waitlist = ""
@@ -361,9 +359,8 @@ out <- local({
           sex +
           site_name +
           bmi_class +
-          med_comorbidity_dm +
-          med_comorbidity_cad +
-          med_comorbidity_htn +
+          meld_listing +
+          total_comorbs +
           etiology_mash,
       data = data,
       xtrans = m,
