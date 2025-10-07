@@ -170,18 +170,27 @@ data <- data |>
     )
   )
 
-data |>
-  # filter(time_from_waitlist_to_event > 20000) |>
-  select(
-    eval_outcome,
-    listing_outcome,
-    time_to_mortality,
-    time_to_listing,
-    time_to_last_follow_up,
-    time_to_transplant,
-    time_from_waitlist_to_event,
-    time_from_transplant_to_death
-  )
+data <- data |>
+  rowwise() |>
+  mutate(
+    across(contains('med_'), \(x) as.numeric(x)),
+    total_comorbs = sum(c_across(contains('med_')), na.rm = TRUE)
+  ) |>
+  ungroup()
+
+
+# data |>
+#   filter(time_from_waitlist_to_event > 20000) |>
+#   select(
+#     eval_outcome,
+#     listing_outcome,
+#     time_to_mortality,
+#     time_to_listing,
+#     time_to_last_follow_up,
+#     time_to_transplant,
+#     time_from_waitlist_to_event,
+#     time_from_transplant_to_death
+#   )
 
 # summary(data$time_from_waitlist_to_event)
 
