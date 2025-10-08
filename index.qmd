@@ -8,6 +8,8 @@ embed-resources: true
 lightbox: true
 notebook-links: false
 output-file: wisel-outcomes-referral-transplant
+bibliography: references.bib
+number-sections: true
 ---
 
 ```{r}
@@ -20,22 +22,25 @@ library(tidyverse)
 {{< embed nb.qmd#baseline-charcteristics >}}
 
 # Baseline Characteristics (Comorbidities)
+
 {{< embed nb.qmd#med-comorbidity-table >}}
 
 # Baseline Characteristics (Indications)
+
 {{< embed nb.qmd#indication-table >}}
 
 # Cumulative Incidence of Waitlist Removal
 
 > The study should display competing-risks cumulative incidence rates for transplant procedures and death on the waitlist and removals due to deterioration and improvement and other reasons.
 
-- A: Died on waitlist
-- B: Removed due to deterioration
-- C: Transplanted
+-   A: Died on waitlist
+-   B: Removed due to deterioration
+-   C: Transplanted
 
 {{< embed nb.qmd#cuminc-plot-waitlist-removal >}}
 
 ## Cumulative Incidence Table for Waitlist Removal
+
 {{< embed nb.qmd#cuminc-table-waitlist-removal >}}
 
 # Finegray Model for Waitlist Remova, Death, and Transplant (Competing Risk)
@@ -46,50 +51,69 @@ library(tidyverse)
 
 # Logistic Regression for Waitlisting
 
-- Generalized linear mixed effects model for waitlisting with random intercept for transplant center 
-- Covariates include all variables as presented previously 
+-   Generalized linear mixed effects model for waitlisting with random intercept for transplant center
+-   Covariates include all variables as presented previously
 
 {{< embed nb.qmd#glm-waitlisting >}}
 
 # Logistic Regression for Waitlisting with BMI Interaction
 
-- Generalized linear mixed effects model for waitlisting with random intercept for transplant center, including interaction term for BMI class with etiology
-- Covariates include all variables as presented previously 
-- MASLD vs Non-MASLD for Waitlisting among BMI classes
+-   Generalized linear mixed effects model for waitlisting with random intercept for transplant center, including interaction term for BMI class with etiology
+-   Covariates include all variables as presented previously
+-   MASLD vs Non-MASLD for Waitlisting among BMI classes
 
 {{< embed nb.qmd#glm-waitlisting-bmi-interaction-marginal-table >}}
 
 # Logistic Regression for Waitlisting with Site Interaction
 
-- Generalized linear mixed effects model for waitlisting with random intercept for transplant center, including interaction term for transplant center with etiology
-- Covariates include all variables as presented previously 
-- MASLD vs Non-MASLD for Waitlisting among Transplant Centers
+-   Generalized linear mixed effects model for waitlisting with random intercept for transplant center, including interaction term for transplant center with etiology
+-   Covariates include all variables as presented previously
+-   MASLD vs Non-MASLD for Waitlisting among Transplant Centers
 
 {{< embed nb.qmd#glm-waitlisting-site-interaction-marginal-table >}}
 
 # Logistic Regression for Waitlisting with Sex Interaction
 
-- Generalized linear mixed effects model for waitlisting with random intercept for transplant center, including interaction term for Sex with etiology
-- Covariates include all variables as presented previously 
-- Male vs Female for Waitlisting among Etiology
+-   Generalized linear mixed effects model for waitlisting with random intercept for transplant center, including interaction term for Sex with etiology
+-   Covariates include all variables as presented previously
+-   Male vs Female for Waitlisting among Etiology
 
 {{< embed nb.qmd#glm-waitlisting-sex-interaction-marginal-table >}}
 
 # Survival Analysis
 
 ## KM Curves for Waitlist Removal
+
 > The survival analysis requires additional development for proper implementation. The text indicates the use of Wilcoxon tests for Kaplan–Meier curve analysis, but these tests do not follow standard procedures for such comparisons. The researchers should perform log-rank tests and Cox proportional hazards models with relevant clinical covariates, including age, sex, MELD or MELD-Na score, and MELD 3.0 when available, BMI class, diabetes, coronary artery disease, portal vein thrombosis, hepatocellular carcinoma, decompensation status, and center. The use of hazard ratios with 95% confidence intervals provides better clinical value for effect size measurement. The researchers should use adjusted Cox models with stratification based on removal reasons to analyze survival rates of patients who leave the waiting list.
 
 ### KM Curves for Transplant
+
 {{< embed nb.qmd#survival-plot-transplant >}}
 
 ### KM Curves for Waitlist Removal
+
 {{< embed nb.qmd#survival-plot-waitlist-removal >}}
 
 ### KM Curves for Waitlist Removal by Reason
+
 {{< embed nb.qmd#survival-plot-waitlist-removal-reason >}}
 
 # Cox Model for Waitlist Removal
 
+{{< embed nb.qmd#coxph-surv-waitlist-removal >}}
+
+# Cox Model for Waitlist Removal with Interaction by Removal Reason
+
 {{< embed nb.qmd#coxph-surv-waitlist-removal-interaction >}}
 
+# Statistical Methods
+
+Baseline patient characteristics were compared between the MASLD and non-MASLD groups using the Wilcoxon rank-sum test for continuous variables and Pearson’s chi-squared test for categorical variables, as appropriate. Missing data for all multivariable analyses were handled using multiple imputation by chained equations (MICE) with five imputations [@buuren2011]. The imputation model included all variables listed in Tables X, Y, and Z. Multivariable analyses were performed on each imputed dataset, and results were pooled using Rubin’s rules [@rubin1987].
+
+Time-to-event analyses were conducted using both the Cox proportional hazards model and the Fine and Gray subdistribution hazard model. For the outcome of waitlisting, time from waitlist entry to removal due to deterioration, transplantation, or death was analyzed, treating these as competing events. Cumulative incidence functions were estimated for each outcome, and cumulative incidence curves between MASLD and non-MASLD groups were compared using Gray’s test [@gray1988]. The Fine and Gray model was used to assess factors associated with each competing outcome, adjusting for relevant patient and clinical covariates as presented in Table X.
+
+Factors associated with waitlisting were investigated using a generalized linear mixed-effects model with a random intercept for transplant center. Covariates included all variables listed in Table Y. To assess potential effect modification by BMI class, site, and sex on the association between MASLD and waitlisting, interaction terms were included in the model, adjusting for the same covariates.
+
+Overall survival following waitlist removal was estimated using the Kaplan–Meier method and compared between MASLD and non-MASLD groups using the log-rank test. Time to death was defined as the interval from waitlist removal to death or last follow-up. The Cox proportional hazards model was used to assess factors associated with overall survival post-waitlist removal, adjusting for relevant patient and clinical covariates as presented in Table Z. Effect modification by removal reason on the association between MASLD and overall survival was assessed by including an interaction term in the model. The proportional hazards assumption was evaluated using Schoenfeld residuals and the goodness-of-fit test described by Grambsch and Therneau [@grambsch1994].
+
+All statistical analyses were performed using R version 4.5.1 (R Foundation for Statistical Computing, Vienna, Austria) . A two-sided p-value \<0.05 was considered statistically significant.

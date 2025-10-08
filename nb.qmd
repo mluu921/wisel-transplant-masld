@@ -825,6 +825,86 @@ out <- local({
 out
 ```
 
+
+```{r}
+#| label: coxph-surv-waitlist-removal
+#| html-table-processing: none
+
+out <- local({
+  data <- pins::pin_read(board, 'processed-data')
+
+  data <- data |>
+    filter(person_eval == 'yes')
+
+  data <- data |>
+    filter(listing_outcome == 'Waitlist removal')
+
+  data <- data |>
+    filter(time_from_waitlist_removal_to_death > 0)
+
+  data <- data |>
+    filter(time_from_waitlist_removal_to_death < 5000)
+
+  data <- data |>
+    mutate(
+      time_from_waitlist_removal_to_death = time_from_waitlist_removal_to_death /
+        365.25
+    )
+
+  data <- recipe(
+    time_from_waitlist_removal_to_death + mortality_outcome ~
+      age_referral +
+        sex +
+        site_name +
+        bmi_class +
+        meld_listing +
+        total_comorbs +
+        etiology_mash +
+        waitlist_removal_recode,
+    data = data
+  ) |>
+    prep() |>
+    bake(new_data = NULL)
+
+  pred_methods <- c(
+    age_referral = "",
+    sex = "",
+    site_name = "",
+    bmi_class = "polyreg",
+    meld_listing = "pmm",
+    total_comorbs = "",
+    etiology_mash = "",
+    waitlist_removal_recode = "polyreg",
+    time_from_waitlist_removal_to_death = "",
+    mortality_outcome = ""
+  )
+
+  set.seed(1)
+  m <- mice::mice(data, m = 5, method = pred_methods, printFlag = FALSE)
+
+  fits0 <- with(
+    m,
+    coxph(
+      Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
+        age_referral +
+          sex +
+          site_name +
+          bmi_class +
+          meld_listing +
+          total_comorbs +
+          waitlist_removal_recode +
+          etiology_mash
+    )
+  )
+
+  fits0 |>
+    tbl_regression(exponentiate = TRUE) |>
+    bold_p()
+})
+
+out
+```
+
 ```{r}
 #| label: coxph-surv-waitlist-removal-interaction
 #| html-table-processing: none
