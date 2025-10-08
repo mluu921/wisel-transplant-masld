@@ -19,8 +19,6 @@ library(Hmisc)
 library(lme4)
 library(broom.mixed)
 
-options(marginaleffects_safe = FALSE)
-
 source(here::here('src/process-data.R'))
 
 board <- pins::board_folder(here::here('board'))
@@ -417,7 +415,7 @@ m <- local({
         sex +
         site_name +
         bmi_class +
-        meld_listing +
+        meld_eval +
         total_comorbs +
         etiology_mash,
     data = data
@@ -430,7 +428,7 @@ m <- local({
     sex = "logreg",
     site_name = "polyreg",
     bmi_class = "polyreg",
-    meld_listing = "pmm",
+    meld_eval = "pmm",
     total_comorbs = "",
     etiology_mash = "",
     outcome = ""
@@ -455,7 +453,7 @@ fits <- with(
       age_referral +
         sex +
         bmi_class +
-        meld_listing +
+        meld_eval +
         total_comorbs +
         etiology_mash +
         (1 | site_name),
@@ -475,6 +473,21 @@ fits |>
 #| html-table-processing: none
 
 out <- local({
+  fits0 <- with(
+    m,
+    lme4::glmer(
+      outcome ~
+        age_referral +
+          sex +
+          bmi_class +
+          etiology_mash +
+          meld_eval +
+          total_comorbs +
+          (1 | site_name),
+      family = binomial()
+    )
+  )
+
   fits <- with(
     m,
     lme4::glmer(
@@ -482,12 +495,18 @@ out <- local({
         age_referral +
           sex +
           bmi_class * etiology_mash +
-          meld_listing +
+          meld_eval +
           total_comorbs +
           (1 | site_name),
       family = binomial()
     )
   )
+
+  lr_test <- D1(fits, fits0)
+
+  p_int <- lr_test$result[, 4]
+
+  p_int <- scales::label_pvalue()(p_int)
 
   tbl <- marginaleffects::avg_comparisons(
     fits,
@@ -505,6 +524,9 @@ out <- local({
     cols_merge(
       columns = c(estimate, conf.low, conf.high),
       pattern = "{1} ({2}, {3})"
+    ) |>
+    tab_footnote(
+      footnote = glue::glue('P for interaction = {p_int}')
     )
 })
 
@@ -517,6 +539,21 @@ out
 #| html-table-processing: none
 
 out <- local({
+  fits0 <- with(
+    m,
+    lme4::glmer(
+      outcome ~
+        age_referral +
+          bmi_class +
+          sex +
+          etiology_mash +
+          meld_eval +
+          total_comorbs +
+          (1 | site_name),
+      family = binomial()
+    )
+  )
+
   fits <- with(
     m,
     lme4::glmer(
@@ -524,12 +561,18 @@ out <- local({
         age_referral +
           bmi_class +
           sex * etiology_mash +
-          meld_listing +
+          meld_eval +
           total_comorbs +
           (1 | site_name),
       family = binomial()
     )
   )
+
+  lr_test <- D1(fits, fits0)
+
+  p_int <- lr_test$result[, 4]
+
+  p_int <- scales::label_pvalue()(p_int)
 
   tbl <- marginaleffects::avg_comparisons(
     fits,
@@ -547,6 +590,9 @@ out <- local({
     cols_merge(
       columns = c(estimate, conf.low, conf.high),
       pattern = "{1} ({2}, {3})"
+    ) |>
+    tab_footnote(
+      footnote = glue::glue('P for interaction = {p_int}')
     )
 })
 
@@ -561,18 +607,40 @@ out
 #| label: glm-waitlisting-site-interaction-marginal-table
 #| html-table-processing: none
 out <- local({
-  fits <- with(
+  fits0 <- with(
     m,
-    glm(
+    lme4::glmer(
       outcome ~
         age_referral +
-          sex +
-          site_name * etiology_mash +
-          meld_listing +
-          total_comorbs,
+          bmi_class +
+          site_name +
+          etiology_mash +
+          meld_eval +
+          total_comorbs +
+          (1 | site_name),
       family = binomial()
     )
   )
+
+  fits <- with(
+    m,
+    lme4::glmer(
+      outcome ~
+        age_referral +
+          bmi_class +
+          site_name * etiology_mash +
+          meld_eval +
+          total_comorbs +
+          (1 | site_name),
+      family = binomial()
+    )
+  )
+
+  lr_test <- D1(fits, fits0)
+
+  p_int <- lr_test$result[, 4]
+
+  p_int <- scales::label_pvalue()(p_int)
 
   tbl <- marginaleffects::avg_comparisons(
     fits,
@@ -590,6 +658,9 @@ out <- local({
     cols_merge(
       columns = c(estimate, conf.low, conf.high),
       pattern = "{1} ({2}, {3})"
+    ) |>
+    tab_footnote(
+      footnote = glue::glue('P for interaction = {p_int}')
     )
 })
 
@@ -598,6 +669,23 @@ out
 
 
 # Survival Analysis
+
+```{r}
+construct_km_figure <- \(x) {
+  x |>
+    ggsurvfit::ggsurvfit() +
+    add_confidence_interval() +
+    add_risktable(risktable_stats = 'n.risk') +
+    scale_x_continuous(limits = c(0, 5)) +
+    scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
+    add_pvalue(
+      pvalue_fun = scales::label_pvalue(),
+      caption = "Logrank Test: {p.value}"
+    ) +
+    theme(plot.margin = margin(t = 10, r = 10, b = 10, l = 20)) +
+    labs(x = 'Years since Waitlist Removal', y = 'Overall Survival (%)')
+}
+```
 
 ```{r}
 #| label: survival-plot-waitlist-removal
@@ -631,17 +719,7 @@ out <- local({
       etiology_mash,
     data = data
   ) |>
-    ggsurvfit::ggsurvfit() +
-    add_confidence_interval() +
-    add_risktable(risktable_stats = 'n.risk') +
-    scale_x_continuous(limits = c(0, 5)) +
-    scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
-    add_pvalue(
-      pvalue_fun = scales::label_pvalue(),
-      caption = "Logrank Test: {p.value}"
-    ) +
-    theme(plot.margin = margin(t = 10, r = 10, b = 10, l = 20)) +
-    labs(x = 'Years since Waitlist Removal', y = 'Survival')
+    construct_km_figure()
 })
 
 out
@@ -678,17 +756,7 @@ out <- local({
     Surv(time_from_transplant_to_death, mortality_outcome) ~ etiology_mash,
     data = data
   ) |>
-    ggsurvfit::ggsurvfit() +
-    add_confidence_interval() +
-    add_risktable(risktable_stats = 'n.risk') +
-    scale_x_continuous(limits = c(0, 5)) +
-    scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
-    add_pvalue(
-      pvalue_fun = scales::label_pvalue(),
-      caption = "Logrank Test: {p.value}"
-    ) +
-    theme(plot.margin = margin(t = 10, r = 10, b = 10, l = 20)) +
-    labs(x = 'Years since Transplant', y = 'Survival')
+    construct_km_figure()
 })
 
 out
@@ -696,10 +764,12 @@ out
 
 > The researchers should perform Cox regression analysis to model post-removal survival based on the reason for removal. 
 
+- A: MASLD
+- B: Non-MASLD
 
 ```{r}
 #| label: survival-plot-waitlist-removal-reason
-#| fig-width: 8
+#| fig-width: 16
 #| fig-height: 8
 #| dpi: 150
 
@@ -724,29 +794,40 @@ out <- local({
         365.25
     )
 
-  survfit2(
-    Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
-      waitlist_removal_recode,
-    data = data
-  ) |>
-    ggsurvfit::ggsurvfit() +
-    add_confidence_interval() +
-    add_risktable(risktable_stats = 'n.risk') +
-    scale_x_continuous(limits = c(0, 5)) +
-    scale_y_continuous(limits = c(0, 1), labels = scales::percent_format()) +
-    add_pvalue(
-      pvalue_fun = scales::label_pvalue(),
-      caption = "Logrank Test: {p.value}"
-    ) +
-    theme(plot.margin = margin(t = 10, r = 10, b = 10, l = 20)) +
-    labs(x = 'Years since Waitlist Removal', y = 'Survival')
+  p <- data |>
+    group_nest(
+      etiology_mash
+    ) |>
+    deframe() |>
+    map(\(x) {
+      km <- survfit2(
+        Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
+          waitlist_removal_recode,
+        data = x
+      ) |>
+        construct_km_figure()
+
+      ggsurvfit_build(km)
+    })
+
+  wrap_plots(p) +
+    plot_annotation(tag_levels = list(c('A', '', 'B', ''))) &
+    theme(
+      plot.tag = element_text(
+        face = 'bold',
+        size = 25,
+        margin = margin(t = 0, r = 5, b = 0, l = 0)
+      ),
+      panel.grid.minor = element_blank()
+    )
 })
 
 out
 ```
 
 ```{r}
-#| eval: false
+#| label: coxph-surv-waitlist-removal-interaction
+#| html-table-processing: none
 
 out <- local({
   data <- pins::pin_read(board, 'processed-data')
@@ -769,11 +850,93 @@ out <- local({
         365.25
     )
 
-  coxph(
-    Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
-      waitlist_removal_recode,
+  data <- recipe(
+    time_from_waitlist_removal_to_death + mortality_outcome ~
+      age_referral +
+        sex +
+        site_name +
+        bmi_class +
+        meld_listing +
+        total_comorbs +
+        etiology_mash +
+        waitlist_removal_recode,
     data = data
+  ) |>
+    prep() |>
+    bake(new_data = NULL)
+
+  pred_methods <- c(
+    age_referral = "",
+    sex = "",
+    site_name = "",
+    bmi_class = "polyreg",
+    meld_listing = "pmm",
+    total_comorbs = "",
+    etiology_mash = "",
+    waitlist_removal_recode = "polyreg",
+    time_from_waitlist_removal_to_death = "",
+    mortality_outcome = ""
   )
+
+  set.seed(1)
+  m <- mice::mice(data, m = 5, method = pred_methods, printFlag = FALSE)
+
+  fits0 <- with(
+    m,
+    coxph(
+      Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
+        age_referral +
+          sex +
+          site_name +
+          bmi_class +
+          meld_listing +
+          total_comorbs +
+          waitlist_removal_recode +
+          etiology_mash
+    )
+  )
+
+  fits <- with(
+    m,
+    coxph(
+      Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
+        age_referral +
+          sex +
+          site_name +
+          bmi_class +
+          meld_listing +
+          total_comorbs +
+          waitlist_removal_recode *
+            etiology_mash
+    )
+  )
+
+  lr_test <- D1(fits, fits0)
+
+  p_int <- lr_test$result[, 4]
+
+  p_int <- scales::label_pvalue()(p_int)
+
+  em <- emmeans::emmeans(
+    fits,
+    dunnett ~ etiology_mash | waitlist_removal_recode,
+    type = 'response',
+    infer = TRUE
+  )
+
+  em$contrasts |>
+    as_tibble() |>
+    select(waitlist_removal_recode, ratio, lower.CL, upper.CL, p.value) |>
+    gt() |>
+    fmt_auto() |>
+    fmt(p.value, fns = scales::label_pvalue()) |>
+    cols_merge(
+      columns = c(ratio, lower.CL, upper.CL),
+      pattern = "{1} ({2}, {3})"
+    ) |>
+    tab_footnote(
+      footnote = glue::glue('P for interaction = {p_int}')
+    )
 })
 
 out
