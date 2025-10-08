@@ -9,3 +9,4 @@ board
 /.quarto/
 **/*.quarto_ipynb
 _output
+nb_files
