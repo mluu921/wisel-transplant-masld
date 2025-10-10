@@ -102,6 +102,27 @@ data$waitlist_removal_recode <- fct_lump_min(
   min = 30
 )
 
+data <- data |>
+  mutate(
+    bmi_class = factor(
+      bmi_class,
+      levels = c(
+        "1 - Underweight",
+        "2 - Normal",
+        "3 - overweight",
+        "4 - obese",
+        "5 - morbid obese"
+      ),
+      labels = c(
+        "Underweight",
+        "Normal",
+        "Overweight",
+        "Obese",
+        "Morbidly Obese"
+      )
+    )
+  )
+
 # code the died on the waitlist patients ---------------------------------
 
 data <- data |>
