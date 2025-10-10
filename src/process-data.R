@@ -88,6 +88,7 @@ data$waitlist_removal_recode <- factor(
   levels = c(
     "Psychosocial",
     "Medical Contraindication",
+    "Condition Deteriorated",
     "Condition Improved",
     "Financial/Insurance",
     "Social/Logistical",

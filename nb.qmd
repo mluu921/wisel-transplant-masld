@@ -676,6 +676,11 @@ out <- local({
     filter(listing_outcome == 'Waitlist removal')
 
   data <- data |>
+    mutate(
+      etiology_mash = fct_rev(etiology_mash)
+    )
+
+  data <- data |>
     filter(time_from_waitlist_removal_to_death > 0)
 
   data <- data |>
@@ -742,8 +747,8 @@ out
 
 ```{r}
 #| label: survival-plot-waitlist-removal-reason
-#| fig-width: 16
-#| fig-height: 8
+#| fig-width: 24
+#| fig-height: 16
 #| dpi: 150
 
 out <- local({
@@ -767,24 +772,25 @@ out <- local({
         365.25
     )
 
-  p <- data |>
-    group_nest(
-      etiology_mash
+  params <- data |>
+    group_nest(waitlist_removal_recode) |>
+    filter(!is.na(waitlist_removal_recode))
+
+  params$km <- map(params$data, \(x) {
+    km <- survfit2(
+      Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
+        etiology_mash,
+      data = x
     ) |>
-    deframe() |>
-    map(\(x) {
-      km <- survfit2(
-        Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
-          waitlist_removal_recode,
-        data = x
-      ) |>
-        construct_km_figure()
+      construct_km_figure()
 
-      ggsurvfit_build(km)
-    })
+    ggsurvfit_build(km)
+  })
 
-  wrap_plots(p) +
-    plot_annotation(tag_levels = list(c('A', '', 'B', ''))) &
+  wrap_plots(params$km) +
+    plot_annotation(
+      tag_levels = list(c('A', '', 'B', '', 'C', '', 'E', '', 'F', '', 'G'))
+    ) &
     theme(
       plot.tag = element_text(
         face = 'bold',

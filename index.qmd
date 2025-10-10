@@ -21,14 +21,6 @@ library(tidyverse)
 
 {{< embed nb.qmd#baseline-charcteristics >}}
 
-# Baseline Characteristics (Comorbidities)
-
-{{< embed nb.qmd#med-comorbidity-table >}}
-
-# Baseline Characteristics (Indications)
-
-{{< embed nb.qmd#indication-table >}}
-
 # Cumulative Incidence of Waitlist Removal
 
 > The study should display competing-risks cumulative incidence rates for transplant procedures and death on the waitlist and removals due to deterioration and improvement and other reasons.
@@ -95,6 +87,13 @@ library(tidyverse)
 {{< embed nb.qmd#survival-plot-waitlist-removal >}}
 
 ### KM Curves for Waitlist Removal by Reason
+
+A: Psychosocial
+B: Medical Contraindication
+C: Condition Deteriorated
+D: Condition Improved
+E: Patient Choice
+F: Other
 
 {{< embed nb.qmd#survival-plot-waitlist-removal-reason >}}
 
