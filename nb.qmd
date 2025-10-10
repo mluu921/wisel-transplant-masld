@@ -45,7 +45,10 @@ local({
       marital_status,
       bmi,
       bmi_class,
-      etiology_mash
+      etiology_mash,
+      contains('indications_lt'),
+      -indications_lt_eval_other,
+      contains('med_comorbidity')
     )
 
   tbl_summary(
@@ -57,75 +60,17 @@ local({
       race_v2 ~ 'Race',
       marital_status ~ 'Marital Status',
       bmi ~ 'Body Mass Index (BMI)',
-      bmi_class ~ 'BMI Class'
-    )
-  ) |>
-    add_overall() |>
-    add_p()
-})
-
-```
-
-```{r}
-#| label: med-comorbidity-table
-#| html-table-processing: none
-
-local({
-  data <- pins::pin_read(board, 'processed-data')
-
-  data <- data |>
-    filter(person_eval == 'yes')
-
-  data <- data |>
-    select(
-      contains('med_comorbidity'),
-      etiology_mash
-    )
-
-  tbl_summary(
-    data,
-    by = etiology_mash,
-    label = list(
+      bmi_class ~ 'BMI Class',
       med_comorbidity_dm ~ 'Diabetes Mellitus',
       med_comorbidity_htn ~ 'Hypertension',
       med_comorbidity_hld ~ 'Hyperlipidemia',
-      med_comorbidity_cad ~ 'Coronary Artery Disease'
-    ),
-    value = list(everything() ~ '1')
-  ) |>
-    add_overall() |>
-    add_p()
-})
-
-```
-
-```{r}
-#| label: indication-table
-#| html-table-processing: none
-
-local({
-  data <- pins::pin_read(board, 'processed-data')
-
-  data <- data |>
-    filter(person_eval == 'yes')
-
-  data <- data |>
-    select(
-      contains('indications_lt'),
-      -indications_lt_eval_other,
-      etiology_mash
-    )
-
-  tbl_summary(
-    data,
-    by = etiology_mash,
-    label = list(
+      med_comorbidity_cad ~ 'Coronary Artery Disease',
       indications_lt_decomp ~ 'Decompensated Cirrhosis',
       indications_lt_alf ~ 'Acute Liver Failure',
       indications_lt_hcc ~ 'Hepatocellular Carcinoma',
       indications_lt_other ~ 'Other Ind'
     ),
-    value = list(everything() ~ '1')
+    value = list(contains('indications') ~ '1')
   ) |>
     add_overall() |>
     add_p()
@@ -321,6 +266,20 @@ out <- local({
   data <- data |>
     mutate(time_from_waitlist_to_event = time_from_waitlist_to_event / 365.25)
 
+  data <- data |>
+    mutate(
+      bmi_class = factor(
+        bmi_class,
+        levels = c(
+          "Normal",
+          "Underweight",
+          "Overweight",
+          "Obese",
+          "Morbidly Obese"
+        )
+      )
+    )
+
   data <- recipe(
     time_from_waitlist_to_event + competing_risk_waitlist ~
       age_referral +
@@ -392,6 +351,20 @@ m <- local({
 
   data <- data |>
     filter(person_eval == 'yes')
+
+  data <- data |>
+    mutate(
+      bmi_class = factor(
+        bmi_class,
+        levels = c(
+          "Normal",
+          "Underweight",
+          "Overweight",
+          "Obese",
+          "Morbidly Obese"
+        )
+      )
+    )
 
   data <- data |>
     mutate(
@@ -851,6 +824,20 @@ out <- local({
         365.25
     )
 
+  data <- data |>
+    mutate(
+      bmi_class = factor(
+        bmi_class,
+        levels = c(
+          "Normal",
+          "Underweight",
+          "Overweight",
+          "Obese",
+          "Morbidly Obese"
+        )
+      )
+    )
+
   data <- recipe(
     time_from_waitlist_removal_to_death + mortality_outcome ~
       age_referral +
@@ -928,6 +915,20 @@ out <- local({
     mutate(
       time_from_waitlist_removal_to_death = time_from_waitlist_removal_to_death /
         365.25
+    )
+
+  data <- data |>
+    mutate(
+      bmi_class = factor(
+        bmi_class,
+        levels = c(
+          "Normal",
+          "Underweight",
+          "Overweight",
+          "Obese",
+          "Morbidly Obese"
+        )
+      )
     )
 
   data <- recipe(
