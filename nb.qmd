@@ -730,6 +730,11 @@ out <- local({
         365.25
     )
 
+  data <- data |>
+    mutate(
+      etiology_mash = fct_rev(etiology_mash)
+    )
+
   survfit2(
     Surv(time_from_transplant_to_death, mortality_outcome) ~ etiology_mash,
     data = data
@@ -770,6 +775,11 @@ out <- local({
     mutate(
       time_from_waitlist_removal_to_death = time_from_waitlist_removal_to_death /
         365.25
+    )
+
+  data <- data |>
+    mutate(
+      etiology_mash = fct_rev(etiology_mash)
     )
 
   params <- data |>
