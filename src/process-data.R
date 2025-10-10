@@ -71,11 +71,11 @@ data$waitlist_removal_recode <- fct_collapse(
   factor(data$waitlist_removal_reaso),
   "Psychosocial" = c("alcohol/substance use related", "psychiatric illness"),
   "Medical Contraindication" = c(
-    "condition deteriorated, too sick for tx",
     "frailty or deconditioning",
     "medical comorbidity: CAD, CHF, other cancer, etc",
     "surgical contraindication"
   ),
+  "Condition Deteriorated" = "condition deteriorated, too sick for tx",
   "Condition Improved" = "condition improved, tx not needed",
   "Financial/Insurance" = "insurance/financial issue",
   "Social/Logistical" = "lack of social support or transportation",
