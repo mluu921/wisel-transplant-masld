@@ -88,12 +88,12 @@ library(tidyverse)
 
 ### KM Curves for Waitlist Removal by Reason
 
-A: Psychosocial
-B: Medical Contraindication
-C: Condition Deteriorated
-D: Condition Improved
-E: Patient Choice
-F: Other
+- A: Psychosocial
+- B: Medical Contraindication
+- C: Condition Deteriorated
+- D: Condition Improved
+- E: Patient Choice
+- F: Other
 
 {{< embed nb.qmd#survival-plot-waitlist-removal-reason >}}
 
