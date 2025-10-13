@@ -644,7 +644,11 @@ out
 # Survival Analysis
 
 ```{r}
-construct_km_figure <- \(x) {
+construct_km_figure <- \(
+  x,
+  x_label = 'Years',
+  y_label = 'Overall Survival (%)'
+) {
   x |>
     ggsurvfit::ggsurvfit() +
     add_confidence_interval() +
@@ -656,7 +660,7 @@ construct_km_figure <- \(x) {
       caption = "Logrank Test: {p.value}"
     ) +
     theme(plot.margin = margin(t = 10, r = 10, b = 10, l = 20)) +
-    labs(x = 'Years since Waitlist Removal', y = 'Overall Survival (%)')
+    labs(x = x_label, y = y_label)
 }
 ```
 
@@ -697,7 +701,7 @@ out <- local({
       etiology_mash,
     data = data
   ) |>
-    construct_km_figure()
+    construct_km_figure(x_label = 'Years since Waitlist Removal')
 })
 
 out
@@ -739,7 +743,7 @@ out <- local({
     Surv(time_from_transplant_to_death, mortality_outcome) ~ etiology_mash,
     data = data
   ) |>
-    construct_km_figure()
+    construct_km_figure(x_label = 'Years since Transplant')
 })
 
 out
@@ -747,8 +751,12 @@ out
 
 > The researchers should perform Cox regression analysis to model post-removal survival based on the reason for removal. 
 
-- A: MASLD
-- B: Non-MASLD
+- A: Psychosocial
+- B: Medical Contradindication
+- C: Condition Deteriorated
+- D: Condition Improved
+- E: Patient Choice
+- F: Other
 
 ```{r}
 #| label: survival-plot-waitlist-removal-reason
@@ -792,14 +800,14 @@ out <- local({
         etiology_mash,
       data = x
     ) |>
-      construct_km_figure()
+      construct_km_figure(x_label = 'Years since Waitlist Removal')
 
     ggsurvfit_build(km)
   })
 
   wrap_plots(params$km) +
     plot_annotation(
-      tag_levels = list(c('A', '', 'B', '', 'C', '', 'E', '', 'F', '', 'G'))
+      tag_levels = list(c('A', '', 'B', '', 'C', '', 'D', '', 'E', '', 'F'))
     ) &
     theme(
       plot.tag = element_text(
@@ -813,7 +821,6 @@ out <- local({
 
 out
 ```
-
 
 ```{r}
 #| label: coxph-surv-waitlist-removal
