@@ -41,6 +41,7 @@ out <- local({
     select(
       age_referral,
       sex,
+      ethnicity_v2,
       race_v2,
       marital_status,
       bmi,
@@ -58,6 +59,7 @@ out <- local({
       age_referral ~ 'Age at Referral',
       sex ~ 'Sex',
       race_v2 ~ 'Race',
+      ethnicity_v2 ~ 'Ethnicity',
       marital_status ~ 'Marital Status',
       bmi ~ 'Body Mass Index (BMI)',
       bmi_class ~ 'BMI Class',

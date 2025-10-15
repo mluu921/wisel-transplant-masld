@@ -68,6 +68,15 @@ data <- data |>
     )
   )
 
+data <- data |>
+  mutate(
+    ethnicity_v2 = case_when(
+      ethnicity_v2 == 'NA' ~ NA,
+      ethnicity_v2 == 'Unknown' ~ NA,
+      .default = ethnicity_v2
+    )
+  )
+
 data$waitlist_removal_recode <- fct_collapse(
   factor(data$waitlist_removal_reaso),
   "Psychosocial" = c("alcohol/substance use related", "psychiatric illness"),
