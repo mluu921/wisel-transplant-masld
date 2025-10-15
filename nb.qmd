@@ -716,15 +716,26 @@ out <- local({
         365.25
     )
 
-  survfit2(
+  fit <- survfit2(
     Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
       etiology_mash,
     data = data
-  ) |>
-    construct_km_figure(x_label = 'Years since Waitlist Removal')
+  )
+
+  p <- construct_km_figure(fit, x_label = 'Years since Waitlist Removal')
+
+  tibble::lst(fit, p)
 })
 
-out
+out$p
+```
+
+```{r}
+#| label: survival-waitlist-removal-table
+#| html-table-processing: none
+
+out$fit |>
+  tbl_survfit(times = seq(0, 5, 1))
 ```
 
 - Excluded an additional 40 rows with time from waitlist to event <= 0
@@ -762,15 +773,27 @@ out <- local({
       etiology_mash = fct_rev(etiology_mash)
     )
 
-  survfit2(
+  fit <- survfit2(
     Surv(time_from_transplant_to_death, mortality_outcome) ~ etiology_mash,
     data = data
-  ) |>
-    construct_km_figure(x_label = 'Years since Transplant')
+  )
+
+  p <- construct_km_figure(fit, x_label = 'Years since Transplant')
+
+  tibble::lst(fit, p)
 })
 
-out
+out$p
 ```
+
+```{r}
+#| label: survival-transplant-table
+#| html-table-processing: none
+
+out$fit |>
+  tbl_survfit(times = seq(0, 5, 1))
+```
+
 
 > The researchers should perform Cox regression analysis to model post-removal survival based on the reason for removal.
 
@@ -820,18 +843,21 @@ out <- local({
     group_nest(waitlist_removal_recode) |>
     filter(!is.na(waitlist_removal_recode))
 
-  params$km <- map(params$data, \(x) {
+  params$fits <- map(params$data, \(x) {
     km <- survfit2(
       Surv(time_from_waitlist_removal_to_death, mortality_outcome) ~
         etiology_mash,
       data = x
-    ) |>
-      construct_km_figure(x_label = 'Years since Waitlist Removal')
+    )
+  })
+
+  params$km <- map(params$fits, \(x) {
+    km <- construct_km_figure(x, x_label = 'Years since Waitlist Removal')
 
     ggsurvfit_build(km)
   })
 
-  wrap_plots(params$km) +
+  p <- wrap_plots(params$km) +
     plot_annotation(
       tag_levels = list(c('A', '', 'B', '', 'C', '', 'D', '', 'E', '', 'F'))
     ) &
@@ -843,7 +869,24 @@ out <- local({
       ),
       panel.grid.minor = element_blank()
     )
+
+  fits <- params$fits |>
+    set_names(params$waitlist_removal_recode)
+
+  tibble::lst(fits, p)
 })
+
+out$p
+```
+
+```{r}
+#| label: survival-waitlist-removal-reason-table
+#| html-table-processing: none
+
+out <- imap(out$fits, \(x, title) {
+  tbl_survfit(x, times = seq(0, 5, 1), label = title)
+}) |>
+  tbl_stack()
 
 out
 ```

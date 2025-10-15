@@ -89,12 +89,16 @@ library(tidyverse)
 
 {{< embed nb.qmd#survival-plot-transplant >}}
 
+{{< embed nb.qmd#survival-transplant-table >}}
+
 ### KM Curves for Post Waitlist Removal
 
 - Excluded an additional 472 rows with time from waitlist to event <= 0
 - Excluded an additional 3 rows with time from waitlist to event > 5000
 
 {{< embed nb.qmd#survival-plot-waitlist-removal >}}
+
+{{< embed nb.qmd#survival-waitlist-removal-table >}}
 
 ### KM Curves for Post Waitlist Removal by Reason
 
@@ -109,6 +113,8 @@ library(tidyverse)
 - Excluded an additional 3 rows with time from waitlist to event > 5000
 
 {{< embed nb.qmd#survival-plot-waitlist-removal-reason >}}
+
+{{< embed nb.qmd#survival-waitlist-removal-reason-table >}}
 
 # Cox Model for Post Waitlist Removal
 
