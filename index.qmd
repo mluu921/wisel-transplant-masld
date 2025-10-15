@@ -29,6 +29,8 @@ library(tidyverse)
 -   B: Removed due to deterioration
 -   C: Transplanted
 
+- Excluded an additional 312 rows with time from waitlist to event <= 0
+
 {{< embed nb.qmd#cuminc-plot-waitlist-removal >}}
 
 ## Cumulative Incidence Table for Waitlist Removal
@@ -38,6 +40,8 @@ library(tidyverse)
 # Finegray Model for Waitlist Remova, Death, and Transplant (Competing Risk)
 
 > The three studied events — transplant, death, and delisting status — exist in a time-dependent relationship, competing with one another. The study requires time-dependent analysis because descriptive statistics, including medians and chi-square tests, fail to show these temporal relationships. The authors should use Fine–Gray competing risks models to analyze waitlist outcomes and multi-state or cause-specific Cox models to study patient transitions from referral to evaluation and listing, as well as transplant and removal. The authors should present subdistribution hazard ratios, along with confidence intervals, to achieve more accurate risk measurement.
+
+- Excluded an additional 312 rows with time from waitlist to event <= 0
 
 {{< embed nb.qmd#finegray-model-transplant-waitlist-removal-death >}}
 
@@ -80,9 +84,15 @@ library(tidyverse)
 
 ### KM Curves for Transplant
 
+- Excluded an additional 40 rows with time from waitlist to event <= 0
+- Excluded an additional 1 rows with time from waitlist to event > 5000
+
 {{< embed nb.qmd#survival-plot-transplant >}}
 
 ### KM Curves for Waitlist Removal
+
+- Excluded an additional 472 rows with time from waitlist to event <= 0
+- Excluded an additional 3 rows with time from waitlist to event > 5000
 
 {{< embed nb.qmd#survival-plot-waitlist-removal >}}
 
@@ -95,15 +105,43 @@ library(tidyverse)
 - E: Patient Choice
 - F: Other
 
+- Excluded an additional 472 rows with time from waitlist to event <= 0
+- Excluded an additional 3 rows with time from waitlist to event > 5000
+
 {{< embed nb.qmd#survival-plot-waitlist-removal-reason >}}
 
 # Cox Model for Waitlist Removal
+
+- Excluded an additional 472 rows with time from waitlist to event <= 0
+- Excluded an additional 3 rows with time from waitlist to event > 5000
 
 {{< embed nb.qmd#coxph-surv-waitlist-removal >}}
 
 # Cox Model for Waitlist Removal with Interaction by Removal Reason
 
+- Excluded an additional 472 rows with time from waitlist to event <= 0
+- Excluded an additional 3 rows with time from waitlist to event > 5000
+
 {{< embed nb.qmd#coxph-surv-waitlist-removal-interaction >}}
+
+# Internal Data Consistency
+
+- Initial data: 9,986 rows
+- filter: removed 3 rows (<1%), 9,983 rows remaining (Greater than 5000 days follow up from referral)
+- filter: removed 2 rows (<1%), 9,981 rows remaining (Greater than 5000 days time to transplant)
+- Total of 9,981 rows after initial filtering (Referred)
+
+{{< embed nb.qmd#data-consistency-check-referrals >}}
+
+- filter: removed 3,272 rows (33%), 6,709 rows remaining (Evaluated)
+
+{{< embed nb.qmd#data-consistency-check-eval >}}
+
+{{< embed nb.qmd#data-consistency-check-eval-outcomes >}}
+
+- filter: removed 3,230 rows (48%), 3,479 rows remaining (Waitlisted)
+
+{{< embed nb.qmd#data-consistency-check-waitlisted-outcomes >}}
 
 # Statistical Methods
 

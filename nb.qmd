@@ -86,9 +86,11 @@ out
 
 > The study should display competing-risks cumulative incidence rates for transplant procedures and death on the waitlist and removals due to deterioration and improvement and other reasons.
 
-- A: Died on waitlist
-- B: Waitlist Removal
-- C: Transplanted
+-   A: Died on waitlist
+-   B: Waitlist Removal
+-   C: Transplanted
+
+Excluded an additional 312 rows with time from waitlist to event <= 0
 
 ```{r}
 #| label: cuminc-plot-waitlist-removal
@@ -164,9 +166,9 @@ local({
 
 ```
 
-- A: Died on waitlist
-- B: Waitlist Removal
-- C: Transplanted
+-   A: Died on waitlist
+-   B: Waitlist Removal
+-   C: Transplanted
 
 ```{r}
 #| label: cuminc-table-waitlist-removal
@@ -232,7 +234,10 @@ out
 
 > Several essential problems need to be resolved before the study can proceed to publication. The primary issue with this study lies in its statistical methodology for outcome assessment. The three studied events — transplant, death, and delisting status — exist in a time-dependent relationship, competing with one another. The study requires time-dependent analysis because descriptive statistics, including medians and chi-square tests, fail to show these temporal relationships. The authors should use Fine–Gray competing risks models to analyze waitlist outcomes and multi-state or cause-specific Cox models to study patient transitions from referral to evaluation and listing, as well as transplant and removal. The authors should present subdistribution hazard ratios, along with confidence intervals, to achieve more accurate risk measurement.
 
-> The researchers should perform log-rank tests and Cox proportional hazards models with relevant clinical covariates, including age, sex, MELD or MELD-Na score, and MELD 3.0 when available, BMI class, diabetes, coronary artery disease, portal vein thrombosis, hepatocellular carcinoma, decompensation status, and center. 
+> The researchers should perform log-rank tests and Cox proportional hazards models with relevant clinical covariates, including age, sex, MELD or MELD-Na score, and MELD 3.0 when available, BMI class, diabetes, coronary artery disease, portal vein thrombosis, hepatocellular carcinoma, decompensation status, and center.
+
+
+- Excluded an additional 312 rows with time from waitlist to event <= 0
 
 ```{r}
 #| label: finegray-model-transplant-waitlist-removal-death
@@ -577,8 +582,9 @@ out
 ```
 
 # Logistic Regression Model - Factors Associated with Waitlisting
-- Evaluation Outcome Stratified by Site 
-  
+
+-   Evaluation Outcome Stratified by Site
+
 ```{r}
 #| label: glm-waitlisting-site-interaction-marginal-table
 #| html-table-processing: none
@@ -650,7 +656,6 @@ out
 
 ```
 
-
 # Survival Analysis
 
 ```{r}
@@ -673,6 +678,9 @@ construct_km_figure <- \(
     labs(x = x_label, y = y_label)
 }
 ```
+
+- Excluded an additional 472 rows with time from waitlist to event <= 0
+- Excluded an additional 3 rows with time from waitlist to event > 5000
 
 ```{r}
 #| label: survival-plot-waitlist-removal
@@ -717,6 +725,9 @@ out <- local({
 out
 ```
 
+- Excluded an additional 40 rows with time from waitlist to event <= 0
+- Excluded an additional 1 rows with time from waitlist to event > 5000
+
 ```{r}
 #| label: survival-plot-transplant
 #| fig-width: 8
@@ -759,14 +770,17 @@ out <- local({
 out
 ```
 
-> The researchers should perform Cox regression analysis to model post-removal survival based on the reason for removal. 
+> The researchers should perform Cox regression analysis to model post-removal survival based on the reason for removal.
 
-- A: Psychosocial
-- B: Medical Contradindication
-- C: Condition Deteriorated
-- D: Condition Improved
-- E: Patient Choice
-- F: Other
+-   A: Psychosocial
+-   B: Medical Contradindication
+-   C: Condition Deteriorated
+-   D: Condition Improved
+-   E: Patient Choice
+-   F: Other
+
+- Excluded an additional 472 rows with time from waitlist to event <= 0
+- Excluded an additional 3 rows with time from waitlist to event > 5000
 
 ```{r}
 #| label: survival-plot-waitlist-removal-reason
@@ -831,6 +845,9 @@ out <- local({
 
 out
 ```
+
+- Excluded an additional 472 rows with time from waitlist to event <= 0
+- Excluded an additional 3 rows with time from waitlist to event > 5000
 
 ```{r}
 #| label: coxph-surv-waitlist-removal
@@ -932,6 +949,9 @@ out <- local({
 out
 
 ```
+
+- Excluded an additional 472 rows with time from waitlist to event <= 0
+- Excluded an additional 3 rows with time from waitlist to event > 5000
 
 ```{r}
 #| label: coxph-surv-waitlist-removal-interaction
@@ -1069,4 +1089,62 @@ out <- local({
 # )
 
 out
+```
+
+# Determine Data Internal Consistency
+
+Initial data: 9,986 rows
+filter: removed 3 rows (<1%), 9,983 rows remaining (Greater than 5000 days follow up from referral)
+filter: removed 2 rows (<1%), 9,981 rows remaining (Greater than 5000 days time to transplant)
+
+```{r}
+#| label: data-consistency-check-referrals
+#| html-table-processing: none
+data <- pins::pin_read(board, 'processed-data')
+
+tbl_summary(data, include = etiology_mash)
+
+```
+
+```{r}
+#| label: data-consistency-check-eval
+#| html-table-processing: none
+data <- pins::pin_read(board, 'processed-data')
+
+data <- data |>
+  filter(person_eval == 'yes')
+
+tbl_summary(data, include = etiology_mash)
+
+```
+
+```{r}
+#| label: data-consistency-check-eval-outcomes
+#| html-table-processing: none
+data <- pins::pin_read(board, 'processed-data')
+
+data <- data |>
+  filter(person_eval == 'yes')
+
+tbl_summary(data, by = etiology_mash, include = eval_outcome) |>
+  add_overall() |>
+  add_p()
+
+```
+
+```{r}
+#| label: data-consistency-check-waitlisted-outcomes
+#| html-table-processing: none
+data <- pins::pin_read(board, 'processed-data')
+
+data <- data |>
+  filter(person_eval == 'yes')
+
+data <- data |>
+  filter(eval_outcome == 'Waitlisted')
+
+tbl_summary(data, by = etiology_mash, include = listing_outcome) |>
+  add_overall() |>
+  add_p()
+
 ```

@@ -1,6 +1,7 @@
 library(tidyverse)
 library(pins)
 library(haven)
+library(tidylog)
 
 board <- pins::board_folder(here::here('board'))
 
