@@ -78,25 +78,25 @@ library(tidyverse)
 
 # Survival Analysis
 
-## KM Curves for Waitlist Removal
+## KM Curves for Post Waitlist Removal
 
 > The survival analysis requires additional development for proper implementation. The text indicates the use of Wilcoxon tests for Kaplan–Meier curve analysis, but these tests do not follow standard procedures for such comparisons. The researchers should perform log-rank tests and Cox proportional hazards models with relevant clinical covariates, including age, sex, MELD or MELD-Na score, and MELD 3.0 when available, BMI class, diabetes, coronary artery disease, portal vein thrombosis, hepatocellular carcinoma, decompensation status, and center. The use of hazard ratios with 95% confidence intervals provides better clinical value for effect size measurement. The researchers should use adjusted Cox models with stratification based on removal reasons to analyze survival rates of patients who leave the waiting list.
 
-### KM Curves for Transplant
+### KM Curves for Post Transplant
 
 - Excluded an additional 40 rows with time from waitlist to event <= 0
 - Excluded an additional 1 rows with time from waitlist to event > 5000
 
 {{< embed nb.qmd#survival-plot-transplant >}}
 
-### KM Curves for Waitlist Removal
+### KM Curves for Post Waitlist Removal
 
 - Excluded an additional 472 rows with time from waitlist to event <= 0
 - Excluded an additional 3 rows with time from waitlist to event > 5000
 
 {{< embed nb.qmd#survival-plot-waitlist-removal >}}
 
-### KM Curves for Waitlist Removal by Reason
+### KM Curves for Post Waitlist Removal by Reason
 
 - A: Psychosocial
 - B: Medical Contraindication
@@ -110,19 +110,23 @@ library(tidyverse)
 
 {{< embed nb.qmd#survival-plot-waitlist-removal-reason >}}
 
-# Cox Model for Waitlist Removal
+# Cox Model for Post Waitlist Removal
 
 - Excluded an additional 472 rows with time from waitlist to event <= 0
 - Excluded an additional 3 rows with time from waitlist to event > 5000
 
 {{< embed nb.qmd#coxph-surv-waitlist-removal >}}
 
-# Cox Model for Waitlist Removal with Interaction by Removal Reason
+# Cox Model for Post Waitlist Removal with Interaction by Removal Reason
 
 - Excluded an additional 472 rows with time from waitlist to event <= 0
 - Excluded an additional 3 rows with time from waitlist to event > 5000
 
 {{< embed nb.qmd#coxph-surv-waitlist-removal-interaction >}}
+
+# Cox Model for Post Transplant Survival
+
+{{< embed nb.qmd#coxph-surv-transplant >}}
 
 # Internal Data Consistency
 

@@ -1093,6 +1093,104 @@ out <- local({
 out
 ```
 
+```{r}
+#| label: coxph-surv-transplant
+#| html-table-processing: none
+
+out <- local({
+  data <- pins::pin_read(board, 'processed-data')
+
+  data <- data |>
+    filter(person_eval == 'yes')
+
+  data <- data |>
+    filter(listing_outcome == 'Transplanted')
+
+  data <- data |>
+    filter(time_from_transplant_to_death > 0)
+
+  data <- data |>
+    filter(time_from_transplant_to_death < 5000)
+
+  data <- data |>
+    mutate(
+      time_from_transplant_to_death = time_from_transplant_to_death /
+        365.25
+    )
+
+  data <- data |>
+    mutate(
+      bmi_class = factor(
+        bmi_class,
+        levels = c(
+          "Normal",
+          "Underweight",
+          "Overweight",
+          "Obese",
+          "Morbidly Obese"
+        )
+      )
+    )
+
+  data <- recipe(
+    time_from_transplant_to_death + mortality_outcome ~
+      age_referral +
+        sex +
+        site_name +
+        bmi_class +
+        meld_listing +
+        total_comorbs +
+        etiology_mash,
+    data = data
+  ) |>
+    prep() |>
+    bake(new_data = NULL)
+
+  pred_methods <- c(
+    age_referral = "",
+    sex = "",
+    site_name = "",
+    bmi_class = "polyreg",
+    meld_listing = "pmm",
+    total_comorbs = "",
+    etiology_mash = "",
+    time_from_transplant_to_death = "",
+    mortality_outcome = ""
+  )
+
+  set.seed(1)
+  m <- mice::mice(data, m = 5, method = pred_methods, printFlag = FALSE)
+
+  fits0 <- with(
+    m,
+    coxph(
+      Surv(time_from_transplant_to_death, mortality_outcome) ~
+        age_referral +
+          sex +
+          site_name +
+          bmi_class +
+          meld_listing +
+          total_comorbs +
+          etiology_mash
+    )
+  )
+
+  fits0 |>
+    tbl_regression(exponentiate = TRUE) |>
+    bold_p() |>
+    as_gt()
+})
+
+
+# gt::gtsave(
+#   out,
+#   here::here('results/cox-regression-survival-waitlist-removal.docx')
+# )
+
+out
+
+```
+
 # Determine Data Internal Consistency
 
 Initial data: 9,986 rows
